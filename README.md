@@ -2,7 +2,7 @@
 Use an AA-30.ZERO antenna analyzer with node.js.
 
 ```javascript
-const AA30Zero = require('./index.js');
+const AA30Zero = require('AA-30.ZERO');
 
 const aa30 = new AA30Zero('/dev/ttyS0');
 aa30.on('measurement', console.log);
