@@ -48,6 +48,7 @@ class AA30Zero extends EventEmitter {
         return new Promise(res => {
             this._write(`frx${samples}`, /^OK$/, () => {
                 res({ frequency: this._frequency, vswr: this._vswr });
+                this._discard = false;
             });
         });
     }
@@ -67,9 +68,7 @@ class AA30Zero extends EventEmitter {
                     this._handle.write(this._queue[0].cmd + '\r\n');
                 }
             } else if (data.search(/^.*,.*,.*$/) > -1) {
-                if (this._discard) {
-                    this._discard = false;
-                } else {
+                if (!this._discard) {
                     const d = parse_frx(data);
                     if (d.vswr < this._vswr) {
                         this._frequency = d.frequency;
