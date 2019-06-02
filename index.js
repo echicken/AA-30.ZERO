@@ -25,6 +25,8 @@ class AA30Zero extends EventEmitter {
         this._queue = []; // { cmd, expect }
         this._handle = new SerialPort(port, { baudRate: 38400 });
         this._discard = false;
+        this._frequency = 0;
+        this._vswr = 100;
     }
 
     _write(cmd, expect = /^OK$/, callback = null) {
@@ -39,19 +41,13 @@ class AA30Zero extends EventEmitter {
     }
 
     scan(centre, range, samples) {
+        this._frequency = 0;
+        this._vswr = 100;
         this._write(`fq${centre}`);
         this._write(`sw${range}`);
         return new Promise(res => {
-            let frequency = 0;
-            let vswr = 100;
-            this.on('measurement', data => {
-                if (data.vswr > vswr) return;
-                frequency = data.frequency;
-                vswr = data.vswr;
-            });
             this._write(`frx${samples}`, /^OK$/, () => {
-                res({frequency, vswr});
-                this.removeAllListeners('measurement');
+                res({ frequency: this._frequency, vswr: this._vswr });
             });
         });
     }
@@ -74,7 +70,12 @@ class AA30Zero extends EventEmitter {
                 if (this._discard) {
                     this._discard = false;
                 } else {
-                    this.emit('measurement', parse_frx(data));
+                    const d = parse_frx(data);
+                    if (d.vswr < this._vswr) {
+                        this._frequency = d.frequency;
+                        this._vswr = d.vswr;
+                    }
+                    this.emit('measurement', d);
                 }
             }
         });
