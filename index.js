@@ -55,7 +55,7 @@ class AA30Zero extends EventEmitter {
 
     park(frequency) {
         this._discard = true;
-        return this._scan(frequency, 1, 1);
+        return this.scan(frequency, 1, 1);
     }
 
     init() {
