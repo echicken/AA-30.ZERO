@@ -24,6 +24,7 @@ class AA30Zero extends EventEmitter {
         super();
         this._queue = []; // { cmd, expect }
         this._handle = new SerialPort(port, { baudRate: 38400 });
+        this._discard = false;
     }
 
     _write(cmd, expect = /^OK$/, callback = null) {
@@ -52,6 +53,11 @@ class AA30Zero extends EventEmitter {
         });
     }
 
+    park(frequency) {
+        this._discard = true;
+        return this._scan(frequency, 1, 1);
+    }
+
     init() {
         const parser = this._handle.pipe(new Readline({ delimiter: '\r\n' }));
         parser.on('data', data => {
@@ -62,7 +68,11 @@ class AA30Zero extends EventEmitter {
                     this._handle.write(this._queue[0].cmd + '\r\n');
                 }
             } else if (data.search(/^.*,.*,.*$/) > -1) {
-                this.emit('measurement', parse_frx(data));
+                if (this._discard) {
+                    this._discard = false;
+                } else {
+                    this.emit('measurement', parse_frx(data));
+                }
             }
         });
     }
