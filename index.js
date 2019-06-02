@@ -49,7 +49,10 @@ class AA30Zero extends EventEmitter {
                 frequency = data.frequency;
                 vswr = data.vswr;
             });
-            this._write(`frx${samples}`, /^OK$/, () => res({frequency, vswr}));
+            this._write(`frx${samples}`, /^OK$/, () => {
+                res({frequency, vswr});
+                this.removeAllListeners('measurement');
+            });
         });
     }
 
