@@ -21,12 +21,34 @@ function parse_frx(line) {
 class AA30Zero extends EventEmitter {
 
     constructor (port) {
+
         super();
+
         this._queue = []; // { cmd, expect }
         this._handle = new SerialPort(port, { baudRate: 38400 });
         this._discard = false;
         this._frequency = 0;
         this._vswr = 100;
+
+        this._handle.pipe(new Readline({ delimiter: '\r\n' })).on('data', data => {
+            if (this._queue.length && data.search(this._queue[0].expect) > -1) {
+                const cmd = this._queue.shift();
+                if (cmd.callback !== null) cmd.callback(data);
+                if (this._queue.length) {
+                    this._handle.write(this._queue[0].cmd + '\r\n');
+                }
+            } else if (data.search(/^.*,.*,.*$/) > -1) {
+                if (!this._discard) {
+                    const d = parse_frx(data);
+                    if (d.vswr < this._vswr) {
+                        this._frequency = d.frequency;
+                        this._vswr = d.vswr;
+                    }
+                    this.emit('measurement', d);
+                }
+            }
+        });
+
     }
 
     _write(cmd, expect = /^OK$/, callback = null) {
@@ -56,28 +78,6 @@ class AA30Zero extends EventEmitter {
     park(frequency) {
         this._discard = true;
         return this.scan(frequency, 1, 1);
-    }
-
-    init() {
-        const parser = this._handle.pipe(new Readline({ delimiter: '\r\n' }));
-        parser.on('data', data => {
-            if (this._queue.length && data.search(this._queue[0].expect) > -1) {
-                const cmd = this._queue.shift();
-                if (cmd.callback !== null) cmd.callback(data);
-                if (this._queue.length) {
-                    this._handle.write(this._queue[0].cmd + '\r\n');
-                }
-            } else if (data.search(/^.*,.*,.*$/) > -1) {
-                if (!this._discard) {
-                    const d = parse_frx(data);
-                    if (d.vswr < this._vswr) {
-                        this._frequency = d.frequency;
-                        this._vswr = d.vswr;
-                    }
-                    this.emit('measurement', d);
-                }
-            }
-        });
     }
 
 }
