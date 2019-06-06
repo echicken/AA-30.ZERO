@@ -15,7 +15,7 @@ function parse_frx(line) {
     const G = N / D;
     let vswr = (1 + G) / (1 - G);
     if (vswr < 0 || vswr > 99) vswr = 99;
-    return { frequency: F, vswr };
+    return { frequency: F * 1000000, vswr };
 }
 
 class AA30Zero extends EventEmitter {
