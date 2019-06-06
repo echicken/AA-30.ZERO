@@ -27,6 +27,7 @@ class AA30Zero extends EventEmitter {
         this._queue = []; // { cmd, expect }
         this._handle = new SerialPort(port, { baudRate: 38400 });
         this._discard = false;
+        this._sample = 0;
         this._frequency = 0;
         this._vswr = 100;
 
@@ -40,6 +41,8 @@ class AA30Zero extends EventEmitter {
             } else if (data.search(/^.*,.*,.*$/) > -1) {
                 if (!this._discard) {
                     const d = parse_frx(data);
+                    d.sample = this._sample;
+                    this._sample++;
                     if (d.vswr < this._vswr) {
                         this._frequency = d.frequency;
                         this._vswr = d.vswr;
@@ -63,6 +66,7 @@ class AA30Zero extends EventEmitter {
     }
 
     scan(centre, range, samples) {
+        this._sample = 0;
         this._frequency = 0;
         this._vswr = 100;
         this._write(`fq${centre}`);
